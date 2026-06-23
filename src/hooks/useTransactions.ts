@@ -91,17 +91,31 @@ export function useTransactions() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { imported: 0, duplicates: 0, errors: ofxList.length }
 
-    // Busca todos os hashes já existentes do usuário em uma única query
-    const { data: existingRows } = await supabase
+    // Busca data + valor + descrição de TODAS as transações do usuário.
+    // Isso cobre tanto linhas antigas (hash_dedup = null, importadas antes da migration)
+    // quanto linhas novas (com hash), usando dois critérios de deduplicação.
+    const { data: existingRows, error: fetchError } = await supabase
       .from('transactions')
-      .select('hash_dedup')
+      .select('hash_dedup, date, amount, description')
       .eq('user_id', user.id)
-      .not('hash_dedup', 'is', null)
 
-    const existingHashes = new Set(existingRows?.map(r => r.hash_dedup) ?? [])
+    if (fetchError) return { imported: 0, duplicates: 0, errors: ofxList.length }
 
-    // Separa novas x duplicatas
-    const toInsert = ofxList.filter(t => !existingHashes.has(t.hash_dedup))
+    const existingHashes = new Set<string>()
+    const existingFingerprints = new Set<string>()
+
+    for (const row of existingRows ?? []) {
+      if (row.hash_dedup) existingHashes.add(row.hash_dedup)
+      // Fingerprint de conteúdo: detecta duplicatas sem hash (rows pré-migration)
+      const fp = `${row.date}|${Number(row.amount).toFixed(2)}|${String(row.description).toLowerCase().trim()}`
+      existingFingerprints.add(fp)
+    }
+
+    const toInsert = ofxList.filter(t => {
+      if (existingHashes.has(t.hash_dedup)) return false
+      const fp = `${t.date}|${t.amount.toFixed(2)}|${t.description.toLowerCase().trim()}`
+      return !existingFingerprints.has(fp)
+    })
     const duplicates = ofxList.length - toInsert.length
 
     let imported = 0
