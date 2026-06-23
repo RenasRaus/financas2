@@ -1,15 +1,20 @@
 export type TransactionType = 'receita' | 'despesa'
 
 export type Category =
-  | 'Alimentação'
-  | 'Transporte'
   | 'Moradia'
-  | 'Lazer'
+  | 'Financeiro'
+  | 'Mercado'
+  | 'Tecnologia'
   | 'Saúde'
+  | 'Alimentação Fora'
+  | 'Lazer'
+  | 'Transporte'
+  | 'Despesas Pessoais'
+  | 'Presentes'
   | 'Educação'
-  | 'Salário'
-  | 'Freelance'
   | 'Outros'
+
+export type Confidence = 'alta' | 'media' | 'baixa'
 
 export type TransactionOrigin = 'manual' | 'ofx'
 
@@ -21,6 +26,9 @@ export interface Transaction {
   date: string
   type: TransactionType
   category: Category
+  subcategoria: string | null
+  confianca: Confidence | null
+  needs_review: boolean
   origem: TransactionOrigin
   created_at: string
 }

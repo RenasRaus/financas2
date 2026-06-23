@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react'
 
 export function ImportView() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -19,6 +19,7 @@ export function ImportView() {
   const [fileName, setFileName] = useState('')
   const [parsing, setParsing] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [result, setResult] = useState<OFXImportResult | null>(null)
   const { importOFXTransactions } = useTransactions()
 
@@ -49,11 +50,18 @@ export function ImportView() {
   async function handleImport() {
     if (parsed.length === 0) return
     setImporting(true)
-    const res = await importOFXTransactions(parsed)
+    setProgress({ done: 0, total: parsed.length })
+
+    const res = await importOFXTransactions(parsed, (done, total) => {
+      setProgress({ done, total })
+    })
+
     setResult(res)
     setParsed([])
     setFileName('')
+    setProgress(null)
     if (fileRef.current) fileRef.current.value = ''
+
     if (res.imported > 0) {
       toast.success(`${res.imported} transações importadas com sucesso!`)
     }
@@ -70,11 +78,14 @@ export function ImportView() {
     setParsed([])
     setFileName('')
     setResult(null)
+    setProgress(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
   const receitas = parsed.filter(t => t.type === 'receita')
   const despesas = parsed.filter(t => t.type === 'despesa')
+
+  const progressPct = progress ? Math.round((progress.done / Math.max(progress.total, 1)) * 100) : 0
 
   return (
     <div className="space-y-6">
@@ -125,8 +136,38 @@ export function ImportView() {
         </CardContent>
       </Card>
 
+      {/* Progresso de categorização */}
+      {importing && progress && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Loader2 className="size-5 animate-spin text-primary shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {progress.done < progress.total
+                      ? `Categorizando transação ${progress.done + 1} de ${progress.total}...`
+                      : 'Finalizando importação...'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Classificando automaticamente via Claude AI
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-muted-foreground">{progressPct}%</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300 rounded-full"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Resultado da importação */}
-      {result && (
+      {result && !importing && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -142,6 +183,12 @@ export function ImportView() {
                   {result.duplicates > 0 && ` · ${result.duplicates} duplicata${result.duplicates !== 1 ? 's' : ''} ignorada${result.duplicates !== 1 ? 's' : ''}`}
                   {result.errors > 0 && ` · ${result.errors} com erro`}
                 </p>
+                {result.imported > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <ClipboardCheck className="size-3" />
+                    Verifique a fila de Revisão para transações com baixa confiança
+                  </p>
+                )}
               </div>
               <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
                 Nova importação
@@ -152,7 +199,7 @@ export function ImportView() {
       )}
 
       {/* Preview das transações parseadas */}
-      {parsed.length > 0 && (
+      {parsed.length > 0 && !importing && (
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>

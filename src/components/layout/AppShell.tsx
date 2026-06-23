@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useTransactions } from '@/hooks/useTransactions'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
@@ -15,19 +16,15 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transações', icon: ArrowLeftRight },
-  { href: '/import', label: 'Importar OFX', icon: Upload },
-]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { pendingReviewCount } = useTransactions()
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -36,6 +33,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login')
     router.refresh()
   }
+
+  const navItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/transactions', label: 'Transações', icon: ArrowLeftRight },
+    { href: '/import', label: 'Importar OFX', icon: Upload },
+    {
+      href: '/revisao',
+      label: 'Revisão',
+      icon: ClipboardList,
+      badge: pendingReviewCount > 0 ? pendingReviewCount : null,
+    },
+  ]
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -47,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       <Separator />
       <nav className="flex-1 space-y-1 p-3">
-        {navItems.map(({ href, label, icon: Icon }) => (
+        {navItems.map(({ href, label, icon: Icon, badge }) => (
           <Link
             key={href}
             href={href}
@@ -59,8 +68,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
-            <Icon className="size-4" />
-            {label}
+            <Icon className="size-4 shrink-0" />
+            <span className="flex-1">{label}</span>
+            {badge != null && (
+              <span
+                className={cn(
+                  'flex size-5 items-center justify-center rounded-full text-xs font-semibold',
+                  pathname === href
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-amber-100 text-amber-700',
+                )}
+              >
+                {badge > 99 ? '99+' : badge}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
