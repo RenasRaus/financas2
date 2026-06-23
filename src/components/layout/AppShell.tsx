@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   TrendingUp,
+  Upload,
   LogOut,
   Menu,
   X,
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/transactions', label: 'Transações', icon: ArrowLeftRight },
+  { href: '/import', label: 'Importar OFX', icon: Upload },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -41,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <TrendingUp className="size-4" />
         </div>
-        <span className="font-semibold text-lg">FinançasApp</span>
+        <span className="font-semibold text-lg">Finanças Raupps</span>
       </div>
       <Separator />
       <nav className="flex-1 space-y-1 p-3">
@@ -108,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
           <div className="flex items-center gap-2">
             <TrendingUp className="size-5 text-primary" />
-            <span className="font-semibold">FinançasApp</span>
+            <span className="font-semibold">Finanças Raupps</span>
           </div>
         </header>
 

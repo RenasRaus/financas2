@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Transaction, TransactionFormData } from '@/types'
+import { OFXImportResult, Transaction, TransactionFormData } from '@/types'
+import { OFXTransaction } from '@/lib/ofx-parser'
 import { toast } from 'sonner'
 
 export function useTransactions() {
@@ -40,6 +41,7 @@ export function useTransactions() {
       date: data.date,
       type: data.type,
       category: data.category,
+      origem: 'manual',
     })
 
     if (error) {
@@ -84,5 +86,30 @@ export function useTransactions() {
     }
   }
 
-  return { transactions, loading, createTransaction, updateTransaction, deleteTransaction, refetch: fetchTransactions }
+  async function importOFXTransactions(ofxList: OFXTransaction[]): Promise<OFXImportResult> {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { imported: 0, errors: ofxList.length }
+
+    let imported = 0
+    let errors = 0
+
+    for (const t of ofxList) {
+      const { error } = await supabase.from('transactions').insert({
+        user_id: user.id,
+        description: t.description,
+        amount: t.amount,
+        date: t.date,
+        type: t.type,
+        category: t.type === 'receita' ? 'Salário' : 'Outros',
+        origem: 'ofx',
+      })
+      if (error) { errors++ } else { imported++ }
+    }
+
+    if (imported > 0) await fetchTransactions()
+    return { imported, errors }
+  }
+
+  return { transactions, loading, createTransaction, updateTransaction, deleteTransaction, importOFXTransactions, refetch: fetchTransactions }
 }

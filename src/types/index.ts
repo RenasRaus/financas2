@@ -11,6 +11,8 @@ export type Category =
   | 'Freelance'
   | 'Outros'
 
+export type TransactionOrigin = 'manual' | 'ofx'
+
 export interface Transaction {
   id: string
   user_id: string
@@ -19,7 +21,13 @@ export interface Transaction {
   date: string
   type: TransactionType
   category: Category
+  origem: TransactionOrigin
   created_at: string
+}
+
+export interface OFXImportResult {
+  imported: number
+  errors: number
 }
 
 export interface TransactionFormData {

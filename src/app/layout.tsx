@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner'
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const metadata: Metadata = {
-  title: 'FinançasApp',
+  title: 'Finanças Raupps',
   description: 'Gerencie suas finanças pessoais com facilidade',
 }
 

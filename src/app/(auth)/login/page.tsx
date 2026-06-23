@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <TrendingUp className="size-5" />
         </div>
-        <CardTitle className="text-2xl">FinançasApp</CardTitle>
+        <CardTitle className="text-2xl">Finanças Raupps</CardTitle>
         <CardDescription>Entre com sua conta para continuar</CardDescription>
       </CardHeader>
       <form onSubmit={handleLogin}>
