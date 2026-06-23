@@ -89,12 +89,25 @@ export function useTransactions() {
   async function importOFXTransactions(ofxList: OFXTransaction[]): Promise<OFXImportResult> {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { imported: 0, errors: ofxList.length }
+    if (!user) return { imported: 0, duplicates: 0, errors: ofxList.length }
+
+    // Busca todos os hashes já existentes do usuário em uma única query
+    const { data: existingRows } = await supabase
+      .from('transactions')
+      .select('hash_dedup')
+      .eq('user_id', user.id)
+      .not('hash_dedup', 'is', null)
+
+    const existingHashes = new Set(existingRows?.map(r => r.hash_dedup) ?? [])
+
+    // Separa novas x duplicatas
+    const toInsert = ofxList.filter(t => !existingHashes.has(t.hash_dedup))
+    const duplicates = ofxList.length - toInsert.length
 
     let imported = 0
     let errors = 0
 
-    for (const t of ofxList) {
+    for (const t of toInsert) {
       const { error } = await supabase.from('transactions').insert({
         user_id: user.id,
         description: t.description,
@@ -103,12 +116,13 @@ export function useTransactions() {
         type: t.type,
         category: t.type === 'receita' ? 'Salário' : 'Outros',
         origem: 'ofx',
+        hash_dedup: t.hash_dedup,
       })
       if (error) { errors++ } else { imported++ }
     }
 
     if (imported > 0) await fetchTransactions()
-    return { imported, errors }
+    return { imported, duplicates, errors }
   }
 
   return { transactions, loading, createTransaction, updateTransaction, deleteTransaction, importOFXTransactions, refetch: fetchTransactions }

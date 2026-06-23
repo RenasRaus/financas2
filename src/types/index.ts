@@ -27,6 +27,7 @@ export interface Transaction {
 
 export interface OFXImportResult {
   imported: number
+  duplicates: number
   errors: number
 }
 

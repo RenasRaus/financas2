@@ -57,6 +57,9 @@ export function ImportView() {
     if (res.imported > 0) {
       toast.success(`${res.imported} transações importadas com sucesso!`)
     }
+    if (res.duplicates > 0) {
+      toast.info(`${res.duplicates} duplicata${res.duplicates !== 1 ? 's' : ''} ignorada${res.duplicates !== 1 ? 's' : ''}`)
+    }
     if (res.errors > 0) {
       toast.error(`${res.errors} transações não puderam ser importadas`)
     }
@@ -135,7 +138,8 @@ export function ImportView() {
               <div>
                 <p className="font-semibold">Importação concluída</p>
                 <p className="text-sm text-muted-foreground">
-                  {result.imported} transação{result.imported !== 1 ? 'ões' : ''} importada{result.imported !== 1 ? 's' : ''}
+                  {result.imported} importada{result.imported !== 1 ? 's' : ''}
+                  {result.duplicates > 0 && ` · ${result.duplicates} duplicata${result.duplicates !== 1 ? 's' : ''} ignorada${result.duplicates !== 1 ? 's' : ''}`}
                   {result.errors > 0 && ` · ${result.errors} com erro`}
                 </p>
               </div>

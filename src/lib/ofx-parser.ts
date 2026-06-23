@@ -3,6 +3,7 @@ export interface OFXTransaction {
   amount: number      // sempre positivo
   description: string // texto original do banco
   type: 'receita' | 'despesa'
+  hash_dedup: string  // SHA256 de "date|amount|description"
 }
 
 // Descrições que os bancos inserem como informativas (não são transações reais)
@@ -16,7 +17,7 @@ const SKIP_DESCRIPTIONS = [
 
 function parseOFXDate(raw: string): string | null {
   // Formatos comuns: 20231201, 20231201120000, 20231201120000[-03:00]
-  const digits = raw.replace(/\D.*$/, '').trim() // pega só os dígitos iniciais
+  const digits = raw.replace(/\D.*$/, '').trim()
   if (digits.length < 8) return null
 
   const year = parseInt(digits.slice(0, 4))
@@ -29,16 +30,22 @@ function parseOFXDate(raw: string): string | null {
 }
 
 function extractTag(block: string, tag: string): string | null {
-  // Suporte a OFX SGML (sem closing tags nos leaf elements)
   const regex = new RegExp(`<${tag}>([^<\n\r]+)`, 'i')
   const match = block.match(regex)
   return match ? match[1].trim() : null
 }
 
-function parseOFXText(text: string): OFXTransaction[] {
+async function sha256(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function parseOFXText(text: string): Promise<OFXTransaction[]> {
   const results: OFXTransaction[] = []
 
-  // Tenta encontrar blocos <STMTTRN>...</STMTTRN>
   const blockRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi
   const blocks = [...text.matchAll(blockRegex)]
 
@@ -56,31 +63,35 @@ function parseOFXText(text: string): OFXTransaction[] {
     const date = parseOFXDate(dtPosted)
     if (!date) continue
 
-    // BB usa vírgula como separador decimal em alguns extratos
     const amount = parseFloat(trnAmt.replace(',', '.'))
     if (isNaN(amount) || amount === 0) continue
 
     const description = (memo || name || '').trim()
     if (!description) continue
 
-    // Ignora linhas de saldo
     const descLower = description.toLowerCase()
     if (SKIP_DESCRIPTIONS.some(s => descLower.includes(s))) continue
 
     const isIncome = trnType?.toUpperCase() === 'CREDIT' || amount > 0
+    const absAmount = Math.abs(amount)
+
+    // Hash determinístico: mesma transação sempre produz o mesmo hash
+    const hashInput = `${date}|${absAmount.toFixed(2)}|${description.toLowerCase().trim()}`
+    const hash_dedup = await sha256(hashInput)
 
     results.push({
       date,
-      amount: Math.abs(amount),
+      amount: absAmount,
       description,
       type: isIncome ? 'receita' : 'despesa',
+      hash_dedup,
     })
   }
 
   return results
 }
 
-/** Lê um File .ofx e retorna as transações parseadas. */
+/** Lê um File .ofx, faz o parse e gera os hashes SHA256 de cada transação. */
 export async function readOFXFile(file: File): Promise<OFXTransaction[]> {
   const buffer = await file.arrayBuffer()
 
