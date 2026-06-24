@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Transaction, TransactionFormData, TransactionType, Category } from '@/types'
-import { CATEGORIES } from '@/lib/constants'
+import { RECEITA_CATEGORIES, DESPESA_CATEGORIES } from '@/lib/constants'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -49,6 +49,15 @@ export function TransactionDialog({ open, onOpenChange, editing, onCreate, onUpd
       setForm({ ...empty, date: today() })
     }
   }, [editing, open])
+
+  // Quando o tipo muda, redefine a categoria para o primeiro valor válido do novo tipo
+  function handleTypeChange(newType: TransactionType) {
+    set('type', newType)
+    const validCategories = newType === 'receita' ? RECEITA_CATEGORIES : DESPESA_CATEGORIES
+    if (!validCategories.includes(form.category)) {
+      set('category', validCategories[0])
+    }
+  }
 
   function set<K extends keyof TransactionFormData>(key: K, value: TransactionFormData[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -112,7 +121,7 @@ export function TransactionDialog({ open, onOpenChange, editing, onCreate, onUpd
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={form.type} onValueChange={v => { if (v != null) set('type', v as TransactionType) }}>
+              <Select value={form.type} onValueChange={v => { if (v != null) handleTypeChange(v as TransactionType) }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -129,7 +138,7 @@ export function TransactionDialog({ open, onOpenChange, editing, onCreate, onUpd
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map(c => (
+                  {(form.type === 'receita' ? RECEITA_CATEGORIES : DESPESA_CATEGORIES).map(c => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>

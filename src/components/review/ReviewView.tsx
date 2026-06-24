@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTransactions } from '@/hooks/useTransactions'
 import { Category, Transaction } from '@/types'
-import { CATEGORIES, CATEGORY_DESCRIPTIONS } from '@/lib/constants'
+import { RECEITA_CATEGORIES, DESPESA_CATEGORIES, CATEGORY_DESCRIPTIONS } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,7 @@ function ReviewCard({
   transaction: Transaction
   onApprove: (id: string, category: Category) => Promise<void>
 }) {
+  const validCategories = transaction.type === 'receita' ? RECEITA_CATEGORIES : DESPESA_CATEGORIES
   const [selected, setSelected] = useState<Category>(transaction.category)
   const [saving, setSaving] = useState(false)
 
@@ -81,7 +82,7 @@ function ReviewCard({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map(c => (
+                {validCategories.map(c => (
                   <SelectItem key={c} value={c}>
                     <div>
                       <span className="font-medium">{c}</span>

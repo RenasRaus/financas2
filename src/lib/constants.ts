@@ -1,6 +1,25 @@
 import { Category } from '@/types'
 
+export const RECEITA_CATEGORIES: Category[] = ['PMSC', 'Outros']
+
+export const DESPESA_CATEGORIES: Category[] = [
+  'Moradia',
+  'Financeiro',
+  'Mercado',
+  'Tecnologia',
+  'Saúde',
+  'Alimentação Fora',
+  'Lazer',
+  'Transporte',
+  'Despesas Pessoais',
+  'Presentes',
+  'Educação',
+  'Outros',
+]
+
+// Todas as categorias (para filtros que mostram ambos os tipos)
 export const CATEGORIES: Category[] = [
+  'PMSC',
   'Moradia',
   'Financeiro',
   'Mercado',
@@ -16,6 +35,7 @@ export const CATEGORIES: Category[] = [
 ]
 
 export const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
+  'PMSC': 'Salário da Polícia Militar de Santa Catarina',
   'Moradia': 'Aluguel, condomínio, energia, internet, manutenção, móveis',
   'Financeiro': 'Empréstimos, juros, tarifas, impostos e encargos',
   'Mercado': 'Supermercado e conveniência',
@@ -39,6 +59,7 @@ export const MERCADO_SUBCATEGORIES = [
 ] as const
 
 export const CATEGORY_COLORS: Record<Category, string> = {
+  'PMSC': '#16a34a',
   'Moradia': '#8b5cf6',
   'Financeiro': '#ef4444',
   'Mercado': '#f97316',

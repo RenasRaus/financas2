@@ -1,6 +1,7 @@
 export type TransactionType = 'receita' | 'despesa'
 
 export type Category =
+  | 'PMSC'
   | 'Moradia'
   | 'Financeiro'
   | 'Mercado'
@@ -36,6 +37,7 @@ export interface Transaction {
 export interface OFXImportResult {
   imported: number
   duplicates: number
+  ignored: number
   errors: number
 }
 

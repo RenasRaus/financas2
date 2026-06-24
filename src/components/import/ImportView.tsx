@@ -68,6 +68,9 @@ export function ImportView() {
     if (res.duplicates > 0) {
       toast.info(`${res.duplicates} duplicata${res.duplicates !== 1 ? 's' : ''} ignorada${res.duplicates !== 1 ? 's' : ''}`)
     }
+    if (res.ignored > 0) {
+      toast.info(`${res.ignored} transferência${res.ignored !== 1 ? 's' : ''} entre contas próprias ignorada${res.ignored !== 1 ? 's' : ''}`)
+    }
     if (res.errors > 0) {
       toast.error(`${res.errors} transações não puderam ser importadas`)
     }
@@ -181,6 +184,7 @@ export function ImportView() {
                 <p className="text-sm text-muted-foreground">
                   {result.imported} importada{result.imported !== 1 ? 's' : ''}
                   {result.duplicates > 0 && ` · ${result.duplicates} duplicata${result.duplicates !== 1 ? 's' : ''} ignorada${result.duplicates !== 1 ? 's' : ''}`}
+                  {result.ignored > 0 && ` · ${result.ignored} transferência${result.ignored !== 1 ? 's' : ''} própria${result.ignored !== 1 ? 's' : ''} ignorada${result.ignored !== 1 ? 's' : ''}`}
                   {result.errors > 0 && ` · ${result.errors} com erro`}
                 </p>
                 {result.imported > 0 && (

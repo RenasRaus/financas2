@@ -5,6 +5,15 @@ export interface CategorizationResult {
   confidence: Confidence
 }
 
+// REGRA 0: Transferências entre contas próprias — ignorar completamente na importação
+// Aplicar tanto para receitas quanto despesas
+const IGNORE_PATTERNS = ['renato raupp', 'eloiza']
+
+export function shouldIgnoreTransaction(description: string): boolean {
+  const lower = description.toLowerCase()
+  return IGNORE_PATTERNS.some(p => lower.includes(p))
+}
+
 const SUPERMARKET_KEYWORDS = [
   'giassi', 'angeloni', 'bistek', 'fort atacadista', 'combo atacadista',
   'atacadao', 'atacadista', 'assai', 'assaí', 'carrefour',
@@ -13,7 +22,7 @@ const SUPERMARKET_KEYWORDS = [
   'ultra popular', 'super popular',
 ]
 
-export function isSupermarket(description: string): boolean {
+function isSupermarket(description: string): boolean {
   const lower = description.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   return SUPERMARKET_KEYWORDS.some(kw => {
     const kwNorm = kw.normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -21,11 +30,26 @@ export function isSupermarket(description: string): boolean {
   })
 }
 
+// REGRA 1 e 2: Receitas não chamam a API — regras fixas locais
+function categorizeIncome(description: string): CategorizationResult {
+  const lower = description.toLowerCase()
+  if (lower.includes('policia militar') || lower.includes('polícia militar')) {
+    return { category: 'PMSC', confidence: 'alta' }
+  }
+  return { category: 'Outros', confidence: 'alta' }
+}
+
 export async function categorizeTransaction(
   description: string,
   amount: number,
+  type: 'receita' | 'despesa',
 ): Promise<CategorizationResult> {
-  // Supermercados conhecidos: classificação local sem chamar API
+  // Receitas: regras fixas, sem chamada de API, nunca vão para revisão
+  if (type === 'receita') {
+    return categorizeIncome(description)
+  }
+
+  // Despesas: supermercados localmente, demais via Claude API
   if (isSupermarket(description)) {
     return { category: 'Mercado', confidence: 'alta' }
   }
@@ -45,7 +69,6 @@ export async function categorizeTransaction(
       confidence: data.confidence as Confidence,
     }
   } catch {
-    // Se a API falhar, retorna Outros com confiança baixa para revisão manual
     return { category: 'Outros', confidence: 'baixa' }
   }
 }

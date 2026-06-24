@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Category, OFXImportResult, Transaction, TransactionFormData } from '@/types'
 import { OFXTransaction } from '@/lib/ofx-parser'
-import { categorizeTransaction } from '@/lib/categorization'
+import { categorizeTransaction, shouldIgnoreTransaction } from '@/lib/categorization'
 import { toast } from 'sonner'
 
 export function useTransactions() {
@@ -115,7 +115,11 @@ export function useTransactions() {
   ): Promise<OFXImportResult> {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { imported: 0, duplicates: 0, errors: ofxList.length }
+    if (!user) return { imported: 0, duplicates: 0, ignored: 0, errors: ofxList.length }
+
+    // REGRA 0: Filtrar transferências entre contas próprias antes de qualquer processamento
+    const afterIgnore = ofxList.filter(t => !shouldIgnoreTransaction(t.description))
+    const ignored = ofxList.length - afterIgnore.length
 
     // Deduplicação: hash + fingerprint de conteúdo (para rows pré-migration sem hash)
     const { data: existingRows, error: fetchError } = await supabase
@@ -123,7 +127,7 @@ export function useTransactions() {
       .select('hash_dedup, date, amount, description')
       .eq('user_id', user.id)
 
-    if (fetchError) return { imported: 0, duplicates: 0, errors: ofxList.length }
+    if (fetchError) return { imported: 0, duplicates: 0, ignored, errors: afterIgnore.length }
 
     const existingHashes = new Set<string>()
     const existingFingerprints = new Set<string>()
@@ -134,12 +138,12 @@ export function useTransactions() {
       existingFingerprints.add(fp)
     }
 
-    const toInsert = ofxList.filter(t => {
+    const toInsert = afterIgnore.filter(t => {
       if (existingHashes.has(t.hash_dedup)) return false
       const fp = `${t.date}|${t.amount.toFixed(2)}|${t.description.toLowerCase().trim()}`
       return !existingFingerprints.has(fp)
     })
-    const duplicates = ofxList.length - toInsert.length
+    const duplicates = afterIgnore.length - toInsert.length
 
     let imported = 0
     let errors = 0
@@ -148,8 +152,8 @@ export function useTransactions() {
       const t = toInsert[i]
       onProgress?.(i, toInsert.length)
 
-      // Categorização automática: supermercados localmente, demais via Claude API
-      const { category, confidence } = await categorizeTransaction(t.description, t.amount)
+      // Categorização: receitas por regras fixas (sem API), despesas via Claude API
+      const { category, confidence } = await categorizeTransaction(t.description, t.amount, t.type)
       const needsReview = confidence === 'baixa'
 
       const { error } = await supabase.from('transactions').insert({
@@ -171,7 +175,7 @@ export function useTransactions() {
     onProgress?.(toInsert.length, toInsert.length)
 
     if (imported > 0) await fetchTransactions()
-    return { imported, duplicates, errors }
+    return { imported, duplicates, ignored, errors }
   }
 
   return {
