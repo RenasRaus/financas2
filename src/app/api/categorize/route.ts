@@ -14,7 +14,7 @@ const CATEGORIES_PROMPT = `Você é um assistente de finanças pessoais brasilei
 - Despesas Pessoais: roupas, calçados, academia, estética, salão, acessórios e cuidados pessoais
 - Presentes: presentes, flores, lembranças, contribuições para festas e datas comemorativas
 - Educação: escola, faculdade, cursos, livros, treinamentos e materiais de estudo
-- Outros: gastos ocasionais, não recorrentes ou que não se encaixam nas categorias acima
+- Outras Despesas: gastos ocasionais, não recorrentes ou que não se encaixam nas categorias acima
 
 Responda APENAS com JSON válido, sem texto adicional:
 {"category": "<nome exato da categoria>", "confidence": "<alta|media|baixa>"}
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return NextResponse.json(
-      { category: 'Outros', confidence: 'baixa' },
+      { category: 'Outras Despesas', confidence: 'baixa' },
       { status: 200 },
     )
   }
@@ -51,7 +51,6 @@ export async function POST(req: NextRequest) {
 
     const text = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
-    // Extrai JSON mesmo que venha com markdown code block
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON in response')
 
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
     const validCategories = [
       'Moradia', 'Financeiro', 'Mercado', 'Tecnologia', 'Saúde',
       'Alimentação Fora', 'Lazer', 'Transporte', 'Despesas Pessoais',
-      'Presentes', 'Educação', 'Outros',
+      'Presentes', 'Educação', 'Outras Despesas',
     ]
     const validConfidences = ['alta', 'media', 'baixa']
 
@@ -70,6 +69,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result)
   } catch {
-    return NextResponse.json({ category: 'Outros', confidence: 'baixa' })
+    return NextResponse.json({ category: 'Outras Despesas', confidence: 'baixa' })
   }
 }

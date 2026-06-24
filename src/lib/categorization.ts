@@ -6,7 +6,6 @@ export interface CategorizationResult {
 }
 
 // REGRA 0: Transferências entre contas próprias — ignorar completamente na importação
-// Aplicar tanto para receitas quanto despesas
 const IGNORE_PATTERNS = ['renato raupp', 'eloiza']
 
 export function shouldIgnoreTransaction(description: string): boolean {
@@ -36,7 +35,7 @@ function categorizeIncome(description: string): CategorizationResult {
   if (lower.includes('policia militar') || lower.includes('polícia militar')) {
     return { category: 'PMSC', confidence: 'alta' }
   }
-  return { category: 'Outros', confidence: 'alta' }
+  return { category: 'Outras Receitas', confidence: 'alta' }
 }
 
 export async function categorizeTransaction(
@@ -69,6 +68,6 @@ export async function categorizeTransaction(
       confidence: data.confidence as Confidence,
     }
   } catch {
-    return { category: 'Outros', confidence: 'baixa' }
+    return { category: 'Outras Despesas', confidence: 'baixa' }
   }
 }

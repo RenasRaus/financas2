@@ -21,7 +21,7 @@ const empty: TransactionFormData = {
   amount: '',
   date: today(),
   type: 'despesa',
-  category: 'Outros',
+  category: 'Outras Despesas',
 }
 
 interface Props {

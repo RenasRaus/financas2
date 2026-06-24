@@ -2,6 +2,7 @@ export type TransactionType = 'receita' | 'despesa'
 
 export type Category =
   | 'PMSC'
+  | 'Outras Receitas'
   | 'Moradia'
   | 'Financeiro'
   | 'Mercado'
@@ -13,7 +14,7 @@ export type Category =
   | 'Despesas Pessoais'
   | 'Presentes'
   | 'Educação'
-  | 'Outros'
+  | 'Outras Despesas'
 
 export type Confidence = 'alta' | 'media' | 'baixa'
 

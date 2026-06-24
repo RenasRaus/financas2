@@ -1,6 +1,6 @@
 import { Category } from '@/types'
 
-export const RECEITA_CATEGORIES: Category[] = ['PMSC', 'Outros']
+export const RECEITA_CATEGORIES: Category[] = ['PMSC', 'Outras Receitas']
 
 export const DESPESA_CATEGORIES: Category[] = [
   'Moradia',
@@ -14,12 +14,13 @@ export const DESPESA_CATEGORIES: Category[] = [
   'Despesas Pessoais',
   'Presentes',
   'Educação',
-  'Outros',
+  'Outras Despesas',
 ]
 
 // Todas as categorias (para filtros que mostram ambos os tipos)
 export const CATEGORIES: Category[] = [
   'PMSC',
+  'Outras Receitas',
   'Moradia',
   'Financeiro',
   'Mercado',
@@ -31,11 +32,12 @@ export const CATEGORIES: Category[] = [
   'Despesas Pessoais',
   'Presentes',
   'Educação',
-  'Outros',
+  'Outras Despesas',
 ]
 
 export const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
   'PMSC': 'Salário da Polícia Militar de Santa Catarina',
+  'Outras Receitas': 'Entradas que não se encaixam em outra categoria',
   'Moradia': 'Aluguel, condomínio, energia, internet, manutenção, móveis',
   'Financeiro': 'Empréstimos, juros, tarifas, impostos e encargos',
   'Mercado': 'Supermercado e conveniência',
@@ -47,7 +49,7 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
   'Despesas Pessoais': 'Roupas, academia, estética, cuidados pessoais',
   'Presentes': 'Presentes, lembranças e datas comemorativas',
   'Educação': 'Escola, cursos, livros, treinamentos',
-  'Outros': 'Gastos ocasionais ou sem categoria definida',
+  'Outras Despesas': 'Gastos ocasionais ou sem categoria definida',
 }
 
 export const MERCADO_SUBCATEGORIES = [
@@ -60,6 +62,7 @@ export const MERCADO_SUBCATEGORIES = [
 
 export const CATEGORY_COLORS: Record<Category, string> = {
   'PMSC': '#16a34a',
+  'Outras Receitas': '#86efac',
   'Moradia': '#8b5cf6',
   'Financeiro': '#ef4444',
   'Mercado': '#f97316',
@@ -71,7 +74,7 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   'Despesas Pessoais': '#a855f7',
   'Presentes': '#e11d48',
   'Educação': '#0ea5e9',
-  'Outros': '#6b7280',
+  'Outras Despesas': '#6b7280',
 }
 
 export const MONTHS = [

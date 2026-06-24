@@ -156,7 +156,7 @@ export function useTransactions() {
       const { category, confidence } = await categorizeTransaction(t.description, t.amount, t.type)
       const needsReview = confidence === 'baixa'
 
-      const { error } = await supabase.from('transactions').insert({
+      const payload = {
         user_id: user.id,
         description: t.description,
         amount: t.amount,
@@ -167,9 +167,26 @@ export function useTransactions() {
         needs_review: needsReview,
         origem: 'ofx',
         hash_dedup: t.hash_dedup,
-      })
+      }
 
-      if (error) { errors++ } else { imported++ }
+      const { error } = await supabase.from('transactions').insert(payload)
+
+      if (error) {
+        console.error('[OFX Import] Erro ao inserir transação:', {
+          descricao: t.description,
+          data: t.date,
+          valor: t.amount,
+          tipo: t.type,
+          categoria: category,
+          supabaseCode: error.code,
+          supabaseMsg: error.message,
+          supabaseDetails: error.details,
+          supabaseHint: error.hint,
+        })
+        errors++
+      } else {
+        imported++
+      }
     }
 
     onProgress?.(toInsert.length, toInsert.length)
