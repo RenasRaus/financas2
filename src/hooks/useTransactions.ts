@@ -138,10 +138,15 @@ export function useTransactions() {
       existingFingerprints.add(fp)
     }
 
+    // Deduplica contra o banco E contra o próprio arquivo (ex: UNIMED aparece 2x no OFX)
+    const seenHashesInFile = new Set<string>()
     const toInsert = afterIgnore.filter(t => {
       if (existingHashes.has(t.hash_dedup)) return false
       const fp = `${t.date}|${t.amount.toFixed(2)}|${t.description.toLowerCase().trim()}`
-      return !existingFingerprints.has(fp)
+      if (existingFingerprints.has(fp)) return false
+      if (seenHashesInFile.has(t.hash_dedup)) return false
+      seenHashesInFile.add(t.hash_dedup)
+      return true
     })
     const duplicates = afterIgnore.length - toInsert.length
 
