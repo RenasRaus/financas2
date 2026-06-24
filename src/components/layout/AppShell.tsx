@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTransactions } from '@/hooks/useTransactions'
+import { PreferencesDialog } from '@/components/preferences/PreferencesDialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
@@ -17,6 +18,7 @@ import {
   Menu,
   X,
   ClipboardList,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [prefsOpen, setPrefsOpen] = useState(false)
   const { pendingReviewCount } = useTransactions()
 
   async function handleSignOut() {
@@ -86,7 +89,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
       <Separator />
-      <div className="p-3 pb-12">
+      <div className="p-3 space-y-1">
+        <button
+          onClick={() => { setPrefsOpen(true); setSidebarOpen(false) }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Settings className="size-4" />
+          Preferências
+        </button>
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"
@@ -139,6 +149,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      <PreferencesDialog open={prefsOpen} onOpenChange={setPrefsOpen} />
     </div>
   )
 }

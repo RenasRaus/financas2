@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Category, OFXImportResult, Transaction, TransactionFormData } from '@/types'
 import { OFXTransaction } from '@/lib/ofx-parser'
 import { categorizeTransaction, shouldIgnoreTransaction } from '@/lib/categorization'
+import { logImportError } from '@/components/preferences/PreferencesDialog'
 import { toast } from 'sonner'
 
 export function useTransactions() {
@@ -177,16 +178,12 @@ export function useTransactions() {
       const { error } = await supabase.from('transactions').insert(payload)
 
       if (error) {
-        console.error(
-          `[OFX Import] Erro ao inserir transação:\n` +
-          `  Descrição: ${t.description}\n` +
-          `  Data: ${t.date} | Valor: ${t.amount} | Tipo: ${t.type}\n` +
-          `  Categoria: ${category}\n` +
-          `  code: ${error.code}\n` +
-          `  message: ${error.message}\n` +
-          `  details: ${error.details}\n` +
-          `  hint: ${error.hint}`
-        )
+        const entry =
+          `[${new Date().toLocaleString('pt-BR')}] ${t.description}\n` +
+          `  ${t.date} | R$ ${t.amount} | ${t.type} | ${category}\n` +
+          `  code: ${error.code} — ${error.message}`
+        console.error('[OFX Import] Erro ao inserir transação:\n' + entry)
+        logImportError(entry)
         errors++
       } else {
         imported++
