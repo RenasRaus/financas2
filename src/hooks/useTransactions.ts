@@ -172,17 +172,16 @@ export function useTransactions() {
       const { error } = await supabase.from('transactions').insert(payload)
 
       if (error) {
-        console.error('[OFX Import] Erro ao inserir transação:', {
-          descricao: t.description,
-          data: t.date,
-          valor: t.amount,
-          tipo: t.type,
-          categoria: category,
-          supabaseCode: error.code,
-          supabaseMsg: error.message,
-          supabaseDetails: error.details,
-          supabaseHint: error.hint,
-        })
+        console.error(
+          `[OFX Import] Erro ao inserir transação:\n` +
+          `  Descrição: ${t.description}\n` +
+          `  Data: ${t.date} | Valor: ${t.amount} | Tipo: ${t.type}\n` +
+          `  Categoria: ${category}\n` +
+          `  code: ${error.code}\n` +
+          `  message: ${error.message}\n` +
+          `  details: ${error.details}\n` +
+          `  hint: ${error.hint}`
+        )
         errors++
       } else {
         imported++

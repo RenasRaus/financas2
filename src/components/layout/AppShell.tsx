@@ -86,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
       <Separator />
-      <div className="p-3">
+      <div className="p-3 pb-12">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"
