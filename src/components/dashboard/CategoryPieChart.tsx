@@ -7,16 +7,21 @@ import { Transaction, Category } from '@/types'
 import { CATEGORY_COLORS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/format'
 
+type FilterType = 'all' | 'receita' | 'despesa'
+
 interface Props {
   transactions: Transaction[]
   loading: boolean
+  filterType?: FilterType
 }
 
-export function CategoryPieChart({ transactions, loading }: Props) {
+export function CategoryPieChart({ transactions, loading, filterType = 'all' }: Props) {
+  const showReceitas = filterType === 'receita'
+
   const data = useMemo(() => {
     const totals: Partial<Record<Category, number>> = {}
     transactions
-      .filter(t => t.type === 'despesa')
+      .filter(t => showReceitas ? t.type === 'receita' : t.type === 'despesa')
       .forEach(t => {
         totals[t.category] = (totals[t.category] ?? 0) + t.amount
       })
@@ -28,14 +33,16 @@ export function CategoryPieChart({ transactions, loading }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Despesas por Categoria</CardTitle>
+        <CardTitle className="text-base">
+          {showReceitas ? 'Receitas por Categoria' : 'Despesas por Categoria'}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="h-64 animate-pulse rounded bg-muted" />
         ) : data.length === 0 ? (
           <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-            Nenhuma despesa neste período
+            {showReceitas ? 'Nenhuma receita neste período' : 'Nenhuma despesa neste período'}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={260}>

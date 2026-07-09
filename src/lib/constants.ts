@@ -54,7 +54,8 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
 
 export const MERCADO_SUBCATEGORIES = [
   'Alimentação Doméstica',
-  'Higiene e Limpeza',
+  'Higiene Pessoal',
+  'Limpeza Doméstica',
   'Saúde',
   'Lazer',
   'Outros',

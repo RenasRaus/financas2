@@ -24,6 +24,7 @@ export interface Transaction {
   id: string
   user_id: string
   description: string
+  descricao_amigavel: string | null
   amount: number
   date: string
   type: TransactionType
@@ -60,4 +61,35 @@ export interface CategoryData {
   name: Category
   value: number
   fill: string
+}
+
+export interface Budget {
+  id: string
+  user_id: string
+  category: Category
+  monthly_limit: number
+  accumulated_balance: number
+  last_reset_date: string | null
+  last_rollover_month: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ReceiptSubcategory = 'Alimentação Doméstica' | 'Higiene Pessoal' | 'Limpeza Doméstica' | 'Saúde' | 'Lazer' | 'Outros'
+
+export interface ReceiptItem {
+  id: string
+  receipt_id: string
+  descricao: string
+  valor: number
+  subcategoria: ReceiptSubcategory
+}
+
+export interface MarketReceipt {
+  id: string
+  transaction_id: string
+  imagem_url: string | null
+  total_identificado: number
+  created_at: string
+  items: ReceiptItem[]
 }

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { formatCurrency, formatDate, getDisplayName } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { CheckCircle2, ClipboardList, Loader2 } from 'lucide-react'
 
@@ -51,8 +51,8 @@ function ReviewCard({
           {/* Informações da transação */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm truncate max-w-xs">
-                {transaction.description}
+              <span className="font-medium text-sm truncate max-w-xs" title={transaction.descricao_amigavel ? transaction.description : undefined}>
+                {getDisplayName(transaction)}
               </span>
               <ConfidenceBadge confidence={transaction.confianca} />
             </div>

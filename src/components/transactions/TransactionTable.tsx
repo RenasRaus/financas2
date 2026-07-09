@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,22 +13,71 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Transaction } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { Category, MarketReceipt, Transaction } from '@/types'
+import { formatCurrency, formatDate, getCurrentMonth, getCurrentYear, getDisplayName } from '@/lib/format'
 import { CATEGORY_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Receipt, Trash2 } from 'lucide-react'
 
 interface Props {
   transactions: Transaction[]
   loading: boolean
   onEdit: (t: Transaction) => void
   onDelete: (id: string) => Promise<void>
+  onUpdateFriendlyDescription: (id: string, value: string | null) => Promise<boolean>
+  overBudgetCategories?: Set<Category>
+  viewingMonth?: number
+  viewingYear?: number
+  receipts?: Map<string, MarketReceipt>
+  onOpenReceiptModal?: (t: Transaction) => void
 }
 
-export function TransactionTable({ transactions, loading, onEdit, onDelete }: Props) {
+export function TransactionTable({
+  transactions,
+  loading,
+  onEdit,
+  onDelete,
+  onUpdateFriendlyDescription,
+  overBudgetCategories,
+  viewingMonth,
+  viewingYear,
+  receipts,
+  onOpenReceiptModal,
+}: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
+
+  // Inline description edit
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const skipSaveRef = useRef(false)
+
+  const currentMonth = getCurrentMonth()
+  const currentYear = getCurrentYear()
+  const isCurrentMonth =
+    (viewingMonth ?? currentMonth) === currentMonth &&
+    (viewingYear ?? currentYear) === currentYear
+
+  function startEdit(t: Transaction) {
+    setEditingId(t.id)
+    setEditValue(t.descricao_amigavel ?? '')
+    skipSaveRef.current = false
+  }
+
+  function cancelEdit() {
+    skipSaveRef.current = true
+    setEditingId(null)
+  }
+
+  async function saveEdit(t: Transaction) {
+    if (skipSaveRef.current) {
+      skipSaveRef.current = false
+      return
+    }
+    const value = editValue.trim() || null
+    setEditingId(null)
+    await onUpdateFriendlyDescription(t.id, value)
+  }
 
   async function handleDelete() {
     if (!confirmId) return
@@ -72,56 +121,113 @@ export function TransactionTable({ transactions, loading, onEdit, onDelete }: Pr
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map(t => (
-              <TableRow key={t.id}>
-                <TableCell className="font-medium">{t.description}</TableCell>
-                <TableCell className="hidden sm:table-cell text-muted-foreground">{formatDate(t.date)}</TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <Badge
-                    variant="outline"
-                    style={{ borderColor: CATEGORY_COLORS[t.category], color: CATEGORY_COLORS[t.category] }}
-                  >
-                    {t.category}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      'text-xs',
-                      t.type === 'receita'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-rose-100 text-rose-700'
+            {transactions.map(t => {
+              const isOverBudget =
+                isCurrentMonth &&
+                t.type === 'despesa' &&
+                overBudgetCategories?.has(t.category)
+              const hasFriendlyName = !!t.descricao_amigavel?.trim()
+              return (
+                <TableRow
+                  key={t.id}
+                  className={cn(isOverBudget && 'bg-rose-50 dark:bg-rose-950/20')}
+                >
+                  <TableCell className="font-medium">
+                    {editingId === t.id ? (
+                      <input
+                        autoFocus
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { void saveEdit(t) }
+                          if (e.key === 'Escape') { cancelEdit() }
+                        }}
+                        onBlur={() => void saveEdit(t)}
+                        placeholder={t.description}
+                        className="w-full min-w-[12rem] rounded border border-input bg-background px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                    ) : (
+                      <div className="group/desc flex items-center gap-1.5">
+                        <span className="truncate max-w-xs" title={hasFriendlyName ? t.description : undefined}>
+                          {getDisplayName(t)}
+                        </span>
+                        <button
+                          onClick={e => { e.stopPropagation(); startEdit(t) }}
+                          title={hasFriendlyName ? `Editar apelido • original: ${t.description}` : 'Adicionar apelido'}
+                          className={cn(
+                            'shrink-0 rounded p-0.5 transition-opacity focus:outline-none',
+                            hasFriendlyName
+                              ? 'text-primary opacity-50 hover:opacity-100'
+                              : 'text-muted-foreground opacity-0 group-hover/desc:opacity-50 hover:!opacity-100',
+                          )}
+                        >
+                          <Pencil className="size-3" />
+                        </button>
+                        {t.category === 'Mercado' && onOpenReceiptModal && (
+                          <button
+                            onClick={e => { e.stopPropagation(); onOpenReceiptModal(t) }}
+                            title={receipts?.has(t.id) ? 'Ver detalhamento do cupom' : 'Anexar cupom fiscal'}
+                            className={cn(
+                              'shrink-0 rounded p-0.5 transition-opacity focus:outline-none',
+                              receipts?.has(t.id)
+                                ? 'text-orange-500 opacity-70 hover:opacity-100'
+                                : 'text-muted-foreground opacity-0 group-hover/desc:opacity-50 hover:!opacity-100',
+                            )}
+                          >
+                            <Receipt className="size-3" />
+                          </button>
+                        )}
+                      </div>
                     )}
-                  >
-                    {t.type === 'receita' ? 'Receita' : 'Despesa'}
-                  </Badge>
-                </TableCell>
-                <TableCell className={cn('text-right font-semibold', t.type === 'receita' ? 'text-emerald-600' : 'text-rose-600')}>
-                  {t.type === 'receita' ? '+' : '-'}{formatCurrency(t.amount)}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={<Button variant="ghost" size="icon" className="size-8" />}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">{formatDate(t.date)}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <Badge
+                      variant="outline"
+                      style={{ borderColor: CATEGORY_COLORS[t.category], color: CATEGORY_COLORS[t.category] }}
                     >
-                      <MoreHorizontal className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(t)} className="gap-2">
-                        <Pencil className="size-4" /> Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setConfirmId(t.id)}
-                        className="gap-2 text-rose-600 focus:text-rose-600"
+                      {t.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        'text-xs',
+                        t.type === 'receita'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-rose-100 text-rose-700'
+                      )}
+                    >
+                      {t.type === 'receita' ? 'Receita' : 'Despesa'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className={cn('text-right font-semibold', t.type === 'receita' ? 'text-emerald-600' : 'text-rose-600')}>
+                    {t.type === 'receita' ? '+' : '-'}{formatCurrency(t.amount)}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={<Button variant="ghost" size="icon" className="size-8" />}
                       >
-                        <Trash2 className="size-4" /> Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                        <MoreHorizontal className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(t)} className="gap-2">
+                          <Pencil className="size-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setConfirmId(t.id)}
+                          className="gap-2 text-rose-600 focus:text-rose-600"
+                        >
+                          <Trash2 className="size-4" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>

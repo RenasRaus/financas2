@@ -19,6 +19,8 @@ import {
   X,
   ClipboardList,
   Settings,
+  Wallet,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,8 +41,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/analise', label: 'Análise Real', icon: BarChart3 },
     { href: '/transactions', label: 'Transações', icon: ArrowLeftRight },
-    { href: '/import', label: 'Importar OFX', icon: Upload },
+    { href: '/orcamento', label: 'Orçamento', icon: Wallet },
+    { href: '/import', label: 'Importar arquivo', icon: Upload },
     {
       href: '/revisao',
       label: 'Revisão',

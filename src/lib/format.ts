@@ -18,6 +18,15 @@ export function getCurrentYear(): number {
   return new Date().getFullYear()
 }
 
+export function getCurrentYM(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+export function getDisplayName(t: { description: string; descricao_amigavel?: string | null }): string {
+  return t.descricao_amigavel?.trim() || t.description
+}
+
 export function exportToCSV(data: Record<string, unknown>[], filename: string): void {
   if (data.length === 0) return
 

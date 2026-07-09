@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Transaction } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { formatCurrency, formatDate, getDisplayName } from '@/lib/format'
 import { CATEGORY_COLORS } from '@/lib/constants'
 import Link from 'next/link'
 
@@ -40,7 +40,7 @@ export function TopExpenses({ transactions, loading }: Props) {
             {top.map(t => (
               <div key={t.id} className="flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{t.description}</p>
+                  <p className="truncate text-sm font-medium">{getDisplayName(t)}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">{formatDate(t.date)}</span>
                     <Badge

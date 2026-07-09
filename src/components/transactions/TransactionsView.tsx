@@ -2,17 +2,21 @@
 
 import { useMemo, useState } from 'react'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useBudgets } from '@/hooks/useBudgets'
+import { useMarketReceipts } from '@/hooks/useMarketReceipts'
 import { TransactionDialog } from './TransactionDialog'
 import { TransactionFilters } from './TransactionFilters'
 import { TransactionTable } from './TransactionTable'
+import { MarketReceiptModal } from '@/components/receipts/MarketReceiptModal'
 import { Button } from '@/components/ui/button'
 import { Transaction } from '@/types'
-import { exportToCSV, formatCurrency, getCurrentMonth, getCurrentYear } from '@/lib/format'
+import { exportToCSV, formatCurrency, getCurrentMonth, getCurrentYear, getDisplayName } from '@/lib/format'
 import { Download, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function TransactionsView() {
-  const { transactions, loading, createTransaction, updateTransaction, deleteTransaction } = useTransactions()
+  const { transactions, loading, createTransaction, updateTransaction, updateFriendlyDescription, deleteTransaction } = useTransactions()
+  const { overBudgetCategories } = useBudgets()
 
   const [month, setMonth] = useState(getCurrentMonth())
   const [year, setYear] = useState(getCurrentYear())
@@ -21,6 +25,7 @@ export function TransactionsView() {
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Transaction | null>(null)
+  const [receiptModalTx, setReceiptModalTx] = useState<Transaction | null>(null)
 
   const filtered = useMemo(() => {
     return transactions.filter(t => {
@@ -28,10 +33,26 @@ export function TransactionsView() {
       if (y !== year || m !== month) return false
       if (category !== 'all' && t.category !== category) return false
       if (type !== 'all' && t.type !== type) return false
-      if (search && !t.description.toLowerCase().includes(search.toLowerCase())) return false
+      if (search) {
+        const q = search.toLowerCase()
+        const matchDesc = t.description.toLowerCase().includes(q)
+        const matchFriendly = t.descricao_amigavel?.toLowerCase().includes(q) ?? false
+        if (!matchDesc && !matchFriendly) return false
+      }
       return true
     })
   }, [transactions, month, year, category, type, search])
+
+  const mercadoIds = useMemo(
+    () => filtered.filter(t => t.category === 'Mercado').map(t => t.id),
+    [filtered]
+  )
+  const { receipts, attachReceipt } = useMarketReceipts(mercadoIds)
+
+  async function handleAttachReceipt(file: File): Promise<void> {
+    if (!receiptModalTx) return
+    await attachReceipt(receiptModalTx.id, file)
+  }
 
   function openCreate() {
     setEditing(null)
@@ -50,7 +71,8 @@ export function TransactionsView() {
     }
     const rows = filtered.map(t => ({
       Data: t.date,
-      Descrição: t.description,
+      Descrição: getDisplayName(t),
+      'Descrição original': t.descricao_amigavel ? t.description : '',
       Tipo: t.type === 'receita' ? 'Receita' : 'Despesa',
       Categoria: t.category,
       Valor: formatCurrency(t.amount),
@@ -93,6 +115,12 @@ export function TransactionsView() {
         loading={loading}
         onEdit={openEdit}
         onDelete={deleteTransaction}
+        onUpdateFriendlyDescription={updateFriendlyDescription}
+        overBudgetCategories={overBudgetCategories}
+        viewingMonth={month}
+        viewingYear={year}
+        receipts={receipts}
+        onOpenReceiptModal={setReceiptModalTx}
       />
 
       <TransactionDialog
@@ -101,6 +129,14 @@ export function TransactionsView() {
         editing={editing}
         onCreate={createTransaction}
         onUpdate={updateTransaction}
+      />
+
+      <MarketReceiptModal
+        open={!!receiptModalTx}
+        onOpenChange={open => { if (!open) setReceiptModalTx(null) }}
+        transaction={receiptModalTx}
+        receipt={receiptModalTx ? (receipts.get(receiptModalTx.id) ?? null) : null}
+        onAttach={handleAttachReceipt}
       />
     </div>
   )

@@ -83,6 +83,22 @@ export function useTransactions() {
     return true
   }
 
+  async function updateFriendlyDescription(id: string, value: string | null): Promise<boolean> {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('transactions')
+      .update({ descricao_amigavel: value })
+      .eq('id', id)
+    if (error) {
+      toast.error('Erro ao salvar descrição')
+      return false
+    }
+    setTransactions(prev =>
+      prev.map(t => (t.id === id ? { ...t, descricao_amigavel: value } : t)),
+    )
+    return true
+  }
+
   async function deleteTransaction(id: string): Promise<void> {
     const supabase = createClient()
     const { error } = await supabase.from('transactions').delete().eq('id', id)
@@ -108,6 +124,45 @@ export function useTransactions() {
       toast.success('Categoria confirmada!')
       await fetchTransactions()
     }
+  }
+
+  async function previewOFXImport(
+    ofxList: OFXTransaction[],
+  ): Promise<{ newCount: number; duplicateCount: number; ignoredCount: number }> {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { newCount: 0, duplicateCount: 0, ignoredCount: ofxList.length }
+
+    const afterIgnore = ofxList.filter(t => !shouldIgnoreTransaction(t.description))
+    const ignored = ofxList.length - afterIgnore.length
+
+    const { data: existingRows } = await supabase
+      .from('transactions')
+      .select('hash_dedup, date, amount, description')
+      .eq('user_id', user.id)
+
+    const existingHashes = new Set<string>()
+    const existingFingerprints = new Set<string>()
+    for (const row of existingRows ?? []) {
+      if (row.hash_dedup) existingHashes.add(row.hash_dedup)
+      const fp = `${row.date}|${Number(row.amount).toFixed(2)}|${String(row.description).toLowerCase().trim()}`
+      existingFingerprints.add(fp)
+    }
+
+    const seenInFile = new Set<string>()
+    let newCount = 0
+    let duplicateCount = 0
+    for (const t of afterIgnore) {
+      const fp = `${t.date}|${t.amount.toFixed(2)}|${t.description.toLowerCase().trim()}`
+      if (existingHashes.has(t.hash_dedup) || existingFingerprints.has(fp) || seenInFile.has(t.hash_dedup)) {
+        duplicateCount++
+      } else {
+        seenInFile.add(t.hash_dedup)
+        newCount++
+      }
+    }
+
+    return { newCount, duplicateCount, ignoredCount: ignored }
   }
 
   async function importOFXTransactions(
@@ -202,8 +257,10 @@ export function useTransactions() {
     pendingReviewCount,
     createTransaction,
     updateTransaction,
+    updateFriendlyDescription,
     deleteTransaction,
     approveReview,
+    previewOFXImport,
     importOFXTransactions,
     refetch: fetchTransactions,
   }

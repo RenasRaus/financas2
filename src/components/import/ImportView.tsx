@@ -12,6 +12,8 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react'
+import { ReceiptUploadSection } from '@/components/import/ReceiptUploadSection'
+import { FaturaUploadSection } from '@/components/import/FaturaUploadSection'
 
 export function ImportView() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -21,7 +23,8 @@ export function ImportView() {
   const [importing, setImporting] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [result, setResult] = useState<OFXImportResult | null>(null)
-  const { importOFXTransactions } = useTransactions()
+  const [dedup, setDedup] = useState<{ newCount: number; duplicateCount: number; ignoredCount: number } | null>(null)
+  const { importOFXTransactions, previewOFXImport } = useTransactions()
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -38,7 +41,9 @@ export function ImportView() {
         toast.error('Nenhuma transação encontrada no arquivo. Verifique se é um OFX válido.')
       } else {
         setParsed(transactions)
-        toast.success(`${transactions.length} transações lidas com sucesso`)
+        const preview = await previewOFXImport(transactions)
+        setDedup(preview)
+        toast.success(`${transactions.length} transações lidas`)
       }
     } catch {
       toast.error('Erro ao ler o arquivo OFX')
@@ -82,6 +87,7 @@ export function ImportView() {
     setFileName('')
     setResult(null)
     setProgress(null)
+    setDedup(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -93,7 +99,7 @@ export function ImportView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Importar Extrato OFX</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Importar arquivo</h1>
         <p className="text-sm text-muted-foreground">
           Importe arquivos .ofx exportados do seu banco (Banco do Brasil e outros)
         </p>
@@ -202,6 +208,10 @@ export function ImportView() {
         </Card>
       )}
 
+      <ReceiptUploadSection />
+
+      <FaturaUploadSection />
+
       {/* Preview das transações parseadas */}
       {parsed.length > 0 && !importing && (
         <Card>
@@ -210,9 +220,26 @@ export function ImportView() {
               <CardTitle className="text-base">
                 {parsed.length} transações encontradas
               </CardTitle>
-              <CardDescription className="mt-1 flex gap-3">
+              <CardDescription className="mt-1 flex gap-3 flex-wrap">
                 <span className="text-emerald-600 font-medium">{receitas.length} receitas</span>
                 <span className="text-rose-600 font-medium">{despesas.length} despesas</span>
+                {dedup && (
+                  <>
+                    <span className="text-primary font-medium">
+                      {dedup.newCount} nova{dedup.newCount !== 1 ? 's' : ''} (vai categorizar via IA)
+                    </span>
+                    {dedup.duplicateCount > 0 && (
+                      <span className="text-muted-foreground">
+                        {dedup.duplicateCount} já existente{dedup.duplicateCount !== 1 ? 's' : ''} (ignorar)
+                      </span>
+                    )}
+                    {dedup.ignoredCount > 0 && (
+                      <span className="text-muted-foreground">
+                        {dedup.ignoredCount} transferência{dedup.ignoredCount !== 1 ? 's' : ''} própria{dedup.ignoredCount !== 1 ? 's' : ''} (ignorar)
+                      </span>
+                    )}
+                  </>
+                )}
               </CardDescription>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -221,7 +248,13 @@ export function ImportView() {
               </Button>
               <Button size="sm" onClick={handleImport} disabled={importing} className="gap-2">
                 {importing && <Loader2 className="size-4 animate-spin" />}
-                {importing ? 'Importando...' : `Importar ${parsed.length} transações`}
+                {importing
+                  ? 'Importando...'
+                  : dedup
+                    ? dedup.newCount === 0
+                      ? 'Nada a importar'
+                      : `Importar ${dedup.newCount} nova${dedup.newCount !== 1 ? 's' : ''}`
+                    : `Importar ${parsed.length} transações`}
               </Button>
             </div>
           </CardHeader>

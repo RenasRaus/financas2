@@ -5,12 +5,37 @@ export interface CategorizationResult {
   confidence: Confidence
 }
 
-// REGRA 0: Transferências entre contas próprias — ignorar completamente na importação
-const IGNORE_PATTERNS = ['renato raupp', 'eloiza']
+// REGRA 0: Transferências entre contas próprias + pagamento de fatura de cartão
+// Ignorar completamente na importação OFX (as despesas do cartão entram via PDF)
+const IGNORE_PATTERNS = [
+  'renato raup',
+  'eloiza',
+  'pgto debito conta',
+  'pagto fatura',
+  'pagamento fatura cartao',
+]
 
 export function shouldIgnoreTransaction(description: string): boolean {
   const lower = description.toLowerCase()
   return IGNORE_PATTERNS.some(p => lower.includes(p))
+}
+
+// Regras fixas para descrições frequentes — evitam chamada desnecessária à API
+const HARD_CODED_RULES: { pattern: RegExp; category: Category }[] = [
+  { pattern: /apple\.com\/bill/i, category: 'Tecnologia' },
+  { pattern: /openai|chatgpt/i, category: 'Tecnologia' },
+  { pattern: /anthropic/i, category: 'Tecnologia' },
+  { pattern: /amazon/i, category: 'Tecnologia' },
+  { pattern: /anuidade/i, category: 'Financeiro' },
+]
+
+function getHardCodedCategory(description: string): CategorizationResult | null {
+  for (const rule of HARD_CODED_RULES) {
+    if (rule.pattern.test(description)) {
+      return { category: rule.category, confidence: 'alta' }
+    }
+  }
+  return null
 }
 
 const SUPERMARKET_KEYWORDS = [
@@ -52,6 +77,10 @@ export async function categorizeTransaction(
   if (isSupermarket(description)) {
     return { category: 'Mercado', confidence: 'alta' }
   }
+
+  // Regras fixas para serviços frequentes (sem chamada de API)
+  const hardCoded = getHardCodedCategory(description)
+  if (hardCoded) return hardCoded
 
   try {
     const res = await fetch('/api/categorize', {
